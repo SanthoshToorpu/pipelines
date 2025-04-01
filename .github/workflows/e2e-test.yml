@@ -1,4 +1,5 @@
 name: KFP e2e tests
+description: "Trigger-only change to re-run workflow"
 
 on:
   push:
