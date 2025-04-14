@@ -163,33 +163,65 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=parallel_after_dependency.loop_with_after_dependency_set),
         ]
 
-        with ThreadPoolExecutor() as executor:
-            futures = [
+        # Limit concurrency to 3 threads to avoid overwhelming the port forwarding
+        max_workers = 3
+        print(f'Running tests with maximum {max_workers} concurrent tests')
+        
+        failures = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
                 executor.submit(self.run_test_case, test_case.pipeline_func,
-                                test_case.timeout) for test_case in test_cases
-            ]
+                              test_case.timeout): test_case.pipeline_func.name
+                for test_case in test_cases
+            }
+            
             for future in as_completed(futures):
-                future.result()
+                test_name = futures[future]
+                try:
+                    future.result()
+                    print(f'Test {test_name} completed successfully')
+                except Exception as e:
+                    print(f'Test {test_name} failed with error: {str(e)}')
+                    failures.append((test_name, str(e)))
+        
+        if failures:
+            print("\n==== TEST FAILURES ====")
+            for name, error in failures:
+                print(f"FAILED: {name} - {error}")
+            self.fail(f"{len(failures)} tests failed. See logs for details.")
 
     def run_test_case(self, pipeline_func: GraphComponent, timeout: int):
         with self.subTest(pipeline=pipeline_func, msg=pipeline_func.name):
             print(
                 f'Running pipeline: {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}.'
             )
-            run_result = self._client.create_run_from_pipeline_func(
-                pipeline_func=pipeline_func)
+            
+            # Add error handling for pipeline creation
+            try:
+                run_result = self._client.create_run_from_pipeline_func(
+                    pipeline_func=pipeline_func)
+            except Exception as e:
+                print(f"Error creating pipeline run: {str(e)}")
+                raise
+            
+            try:
+                # Increase verbosity during wait to help diagnose timeout issues
+                print(f"Waiting for pipeline {pipeline_func.name} to complete (timeout: {timeout}s)...")
+                run_response = run_result.wait_for_run_completion(timeout)
+                print(f"Pipeline {pipeline_func.name} completed with state: {run_response.state}")
+                
+                pprint(run_response.run_details)
+                print('Run details page URL:')
+                print(
+                    f'{self._kfp_ui_and_port}/#/runs/details/{run_response.run_id}')
 
-            run_response = run_result.wait_for_run_completion(timeout)
-
-            pprint(run_response.run_details)
-            print('Run details page URL:')
-            print(
-                f'{self._kfp_ui_and_port}/#/runs/details/{run_response.run_id}')
-
-            self.assertEqual(run_response.state, 'SUCCEEDED')
-            print(
-                f'Pipeline, {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}, succeeded.'
-            )
+                self.assertEqual(run_response.state, 'SUCCEEDED')
+                print(
+                    f'Pipeline, {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}, succeeded.'
+                )
+            except Exception as e:
+                print(f"Error waiting for pipeline {pipeline_func.name} completion: {str(e)}")
+                raise
 
 
 if __name__ == '__main__':
