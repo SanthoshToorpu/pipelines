@@ -24,22 +24,34 @@ jobs:
 
     - name: Create KFP cluster
       id: create-kfp-cluster
-      uses: ./.github/actions/kfp-cluster
+      uses: ./.github/actions/create-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
+      continue-on-error: true
+      
+    - name: Build KFP images
+      id: build-kfp-images
+      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+      uses: ./.github/actions/build-images
+      continue-on-error: true
+      
+    - name: Deploy KFP
+      id: deploy-kfp
+      if: ${{ steps.build-kfp-images.outcome == 'success' }}
+      uses: ./.github/actions/deploy-kfp
       env:
         PIPELINE_STORE: kubernetes
       continue-on-error: true
 
     - name: Run Webhook Integration Tests
       id: tests
-      if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+      if: ${{ steps.deploy-kfp.outcome == 'success' }}
       run: |
         make -C backend/test/integration test-webhook
       continue-on-error: true
 
     - name: Collect failed logs
-      if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
+      if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || (steps.build-kfp-images.outcome != 'success' ) || (steps.deploy-kfp.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
       run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         exit 1

@@ -1,0 +1,19 @@
+name: "Create KinD Cluster"
+description: "Creates a KinD cluster for KFP"
+
+inputs:
+  k8s_version:
+    description: "The Kubernetes version to use for the Kind cluster"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create k8s Kind Cluster with Registry
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: kfp
+        kubectl_version: ${{ inputs.k8s_version }}
+        version: v0.25.0
+        node_image: kindest/node:${{ inputs.k8s_version }}
+        registry: true 
