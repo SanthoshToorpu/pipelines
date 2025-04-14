@@ -9,44 +9,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Create kind registry
-      shell: bash
-      run: |
-        # Create registry container
-        docker run -d --restart=always -p "5000:5000" --name kind-registry registry:2
-        # Create network if not exists
-        docker network connect "kind" kind-registry || true
-
-    - name: Create k8s Kind Cluster
+    - name: Create k8s Kind Cluster with Registry
       uses: container-tools/kind-action@v2
       with:
         cluster_name: kfp
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
-        config: |
-          kind: Cluster
-          apiVersion: kind.x-k8s.io/v1alpha4
-          containerdConfigPatches:
-          - |-
-            [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
-              endpoint = ["http://kind-registry:5000"]
-
-    - name: Configure registry access
-      shell: bash
-      run: |
-        # Connect the registry to the cluster network if needed
-        docker network connect "kind" kind-registry || true
-        
-        # Document the local registry
-        cat <<EOF | kubectl apply -f -
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          name: local-registry-hosting
-          namespace: kube-public
-        data:
-          localRegistryHosting.v1: |
-            host: "localhost:5000"
-            help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
-        EOF 
+        registry: true 

@@ -20,7 +20,7 @@ runs:
       shell: bash
       run: |
         docker load -i /tmp/kfp-images/kfp-images.tar
-        kind load docker-image kind-registry:5000/apiserver:latest kind-registry:5000/persistenceagent:latest kind-registry:5000/scheduledworkflow:latest kind-registry:5000/driver:latest kind-registry:5000/launcher:latest --name kfp
+        # The kind CLI handles loading into the kind-registry
         
     - name: Deploy KFP
       shell: bash
