@@ -6,13 +6,19 @@ resources:
 
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
-  newName: kind-registry:5000/apiserver
+  newName: docker.io/library/apiserver
   newTag: latest
 - name: ghcr.io/kubeflow/kfp-persistence-agent
-  newName: kind-registry:5000/persistenceagent
+  newName: docker.io/library/persistenceagent
   newTag: latest
 - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
-  newName: kind-registry:5000/scheduledworkflow
+  newName: docker.io/library/scheduledworkflow
+  newTag: latest
+- name: ghcr.io/kubeflow/kfp-driver
+  newName: docker.io/library/driver
+  newTag: latest
+- name: ghcr.io/kubeflow/kfp-launcher
+  newName: docker.io/library/launcher
   newTag: latest
 
 patchesStrategicMerge:

@@ -9,6 +9,6 @@ spec:
         - name: ml-pipeline-api-server
           env:
             - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver
+              value: docker.io/library/driver
             - name: V2_LAUNCHER_IMAGE
-              value: kind-registry:5000/launcher
+              value: docker.io/library/launcher

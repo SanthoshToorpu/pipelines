@@ -65,36 +65,6 @@ else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
 
-# Check if image patch file exists, indicating we need to update the kustomization
-if [ -f "/tmp/kfp-patches/image-patch.yaml" ]; then
-  echo "Found image patch file. Updating kustomization.yaml to use locally loaded images."
-  
-  # Create a backup of the original kustomization.yaml
-  KUSTOMIZATION_FILE="${TEST_MANIFESTS}/kustomization.yaml"
-  cp "${KUSTOMIZATION_FILE}" "${KUSTOMIZATION_FILE}.bak"
-  
-  # Update the image references in the kustomization.yaml file
-  sed -i 's|newName: kind-registry:5000/apiserver|newName: docker.io/library/apiserver|g' "${KUSTOMIZATION_FILE}"
-  sed -i 's|newName: kind-registry:5000/persistenceagent|newName: docker.io/library/persistenceagent|g' "${KUSTOMIZATION_FILE}"
-  sed -i 's|newName: kind-registry:5000/scheduledworkflow|newName: docker.io/library/scheduledworkflow|g' "${KUSTOMIZATION_FILE}"
-  
-  # Check if driver and launcher are present, add them if they're not
-  if ! grep -q "kfp-driver" "${KUSTOMIZATION_FILE}"; then
-    sed -i '/images:/a\- name: ghcr.io/kubeflow/kfp-driver\n  newName: docker.io/library/driver\n  newTag: latest' "${KUSTOMIZATION_FILE}"
-  else
-    sed -i 's|newName: kind-registry:5000/driver|newName: docker.io/library/driver|g' "${KUSTOMIZATION_FILE}"
-  fi
-  
-  if ! grep -q "kfp-launcher" "${KUSTOMIZATION_FILE}"; then
-    sed -i '/images:/a\- name: ghcr.io/kubeflow/kfp-launcher\n  newName: docker.io/library/launcher\n  newTag: latest' "${KUSTOMIZATION_FILE}"
-  else
-    sed -i 's|newName: kind-registry:5000/launcher|newName: docker.io/library/launcher|g' "${KUSTOMIZATION_FILE}"
-  fi
-  
-  echo "Updated kustomization.yaml:"
-  cat "${KUSTOMIZATION_FILE}"
-fi
-
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
@@ -113,4 +83,3 @@ fi
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."
-
