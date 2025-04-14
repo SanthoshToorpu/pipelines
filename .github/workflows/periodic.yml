@@ -18,10 +18,17 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
+          
       - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
+        uses: ./.github/actions/create-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
+        
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Port forward kfp apiserver
         run: |

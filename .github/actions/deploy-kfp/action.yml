@@ -1,0 +1,32 @@
+name: "Deploy KFP"
+description: "Deploys KFP onto the cluster"
+
+inputs:
+  proxy:
+    description: "If KFP should be deployed with proxy configuration"
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download images
+      uses: actions/download-artifact@v4
+      with:
+        name: kfp-images
+        path: /tmp/kfp-images
+        
+    - name: Load images into Kind
+      shell: bash
+      run: |
+        docker load -i /tmp/kfp-images/kfp-images.tar
+        kind load docker-image kind-registry:5000/apiserver:latest kind-registry:5000/persistenceagent:latest kind-registry:5000/scheduledworkflow:latest kind-registry:5000/driver:latest kind-registry:5000/launcher:latest --name kfp
+        
+    - name: Deploy KFP
+      shell: bash
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/deploy-kfp.sh --proxy
+        else
+          ./.github/resources/scripts/deploy-kfp.sh
+        fi 

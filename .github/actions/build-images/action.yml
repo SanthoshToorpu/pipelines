@@ -1,0 +1,38 @@
+name: "Build KFP Images"
+description: "Builds and saves KFP Docker images"
+
+inputs:
+  proxy:
+    description: "If images should be built with proxy configuration"
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Deploy Squid
+      id: deploy-squid
+      if: ${{ (inputs.proxy == 'true' )}}
+      shell: bash
+      run: ./.github/resources/squid/deploy-squid.sh
+
+    - name: Build images
+      shell: bash
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/build-images.sh --proxy
+        else
+          ./.github/resources/scripts/build-images.sh
+        fi
+        
+    - name: Save images to tar
+      shell: bash
+      run: |
+        mkdir -p /tmp/kfp-images
+        docker save kind-registry:5000/apiserver:latest kind-registry:5000/persistenceagent:latest kind-registry:5000/scheduledworkflow:latest kind-registry:5000/driver:latest kind-registry:5000/launcher:latest -o /tmp/kfp-images/kfp-images.tar
+        
+    - name: Upload images
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-images
+        path: /tmp/kfp-images/kfp-images.tar 

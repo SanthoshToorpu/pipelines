@@ -44,9 +44,15 @@ jobs:
             df -h
 
       - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
+        uses: ./.github/actions/create-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
+        
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
