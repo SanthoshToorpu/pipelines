@@ -14,6 +14,7 @@ spec:
               value: docker.io/library/launcher
       initContainers:
       - name: ml-pipeline-api-server-init
+        image: ghcr.io/kubeflow/kfp-launcher:2.4.1
         env:
         - name: DRIVER_IMAGE
           value: docker.io/library/driver
